@@ -20,7 +20,6 @@
     unpins-lib.lib.mkStandaloneFlake {
       inherit self;
       name = "xz";
-      windows = true;
       build = pkgs:
         let
           pruned = pkgs.pkgsStatic.xz.overrideAttrs (old: {
@@ -37,6 +36,27 @@
         unpins-lib.lib.withAliases pkgs
           {
             primary = "xz";
+            aliases = [ "unxz" "xzcat" "lzma" "unlzma" "lzcat" ];
+          }
+          pruned;
+      # Mingw counterpart: same pruning, `xz.exe` as the embed target.
+      windowsBuild = pkgs:
+        let
+          cross = unpins-lib.lib.mingwStaticCross pkgs;
+          pruned = cross.xz.overrideAttrs (old: {
+            postInstall = (old.postInstall or "") + "\n" + ''
+              for o in $outputs; do
+                d="''${!o}"
+                [ -d "$d/bin" ] || continue
+                find "$d/bin" -mindepth 1 -maxdepth 1 \
+                  ! -name 'xz' ! -name 'xz.exe' -delete
+              done
+            '';
+          });
+        in
+        unpins-lib.lib.withAliases pkgs
+          {
+            primary = "xz.exe";
             aliases = [ "unxz" "xzcat" "lzma" "unlzma" "lzcat" ];
           }
           pruned;
