@@ -38,6 +38,19 @@
       build = pkgs:
         let
           pruned = pkgs.pkgsStatic.xz.overrideAttrs (old: {
+            # On darwin, pkgsStatic still leaves libtool building a shared
+            # liblzma — configure reports "build shared libraries: yes"
+            # despite `--disable-shared` (Apple has no static libSystem, so
+            # the static adapter can't fully suppress shared). The CLI then
+            # links liblzma.5.dylib and fails action-build's portability
+            # check. Force libtool to emit only the static archive so
+            # liblzma folds into the binary (libSystem stays the sole
+            # dynamic dep). Linux/musl already links static, so gate on
+            # darwin to leave that build untouched.
+            postConfigure = (old.postConfigure or "")
+              + pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
+                sed -i 's/^build_libtool_libs=yes$/build_libtool_libs=no/' libtool
+              '';
             postInstall = (old.postInstall or "") + "\n" + ''
               for o in $outputs; do
                 d="''${!o}"
