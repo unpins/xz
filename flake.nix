@@ -18,23 +18,43 @@
   # links at install time.
   outputs = { self, unpins-lib }:
     let
-      # Windows man is grafted from nixpkgs (the mingw cross can't run
-      # help2man), and `name = "xz"` resolves the graft to nixpkgs' xz.man
-      # — which carries all 23 upstream man1 pages. We ship only `xz` + its
-      # 5 aliases, so build a curated 6-page tree and pin it via winManRoot
-      # (the native side curates its own $out/share/man in postInstall).
-      pkgsX = unpins-lib.inputs.nixpkgs.legacyPackages.x86_64-linux;
-      winMan = pkgsX.runCommand "xz-win-man" { } ''
-        mkdir -p "$out/share/man/man1"
-        for p in xz unxz xzcat lzma unlzma lzcat; do
-          zcat ${pkgsX.xz.man}/share/man/man1/$p.1.gz > "$out/share/man/man1/$p.1"
+      lib = unpins-lib.lib;
+      # Pages for the shipped commands (`xz` + its 5 multicall aliases). Every
+      # target — native, cross-linux, AND windows — runs the same prune below
+      # and then embeds its OWN curated man via withMan. No grafted/curated
+      # external tree: the windows .exe harvests the pages from its own mingw
+      # build (xz ships pre-generated roff in the tarball, installed on every
+      # cross), exactly like the cross-linux targets already do.
+      manPages = [ "xz" "unxz" "xzcat" "lzma" "unlzma" "lzcat" ];
+      manKeepArgs =
+        builtins.concatStringsSep " " (map (p: "! -name '${p}.1*'") manPages);
+
+      # Shared postInstall, applied identically on native and windows. Upstream
+      # installs 23 man1 pages + the standalone-helper binaries; we ship only
+      # `xz` (+ `xz.exe`) and the 5 multicall aliases. Keep just the matching
+      # binary and the 6 man pages.
+      #
+      # Touch only the C-locale `man1/` (the only tree withMan embeds); the
+      # translated locale dirs (de/, fr/, …) are left intact so their internal
+      # alias→page symlink webs don't dangle. The 5 alias pages we keep are all
+      # symlinks to xz.1, which we keep, so man1/ stays self-consistent.
+      prunePostInstall = ''
+        for o in $outputs; do
+          d="''${!o}"
+          if [ -d "$d/bin" ]; then
+            find "$d/bin" -mindepth 1 -maxdepth 1 \
+              ! -name 'xz' ! -name 'xz.exe' -delete
+          fi
+          if [ -d "$d/share/man/man1" ]; then
+            find "$d/share/man/man1" -mindepth 1 -maxdepth 1 \
+              ${manKeepArgs} -delete
+          fi
         done
       '';
     in
-    unpins-lib.lib.mkStandaloneFlake {
+    lib.mkStandaloneFlake {
       inherit self;
       name = "xz";
-      winManRoot = winMan;
       build = pkgs:
         let
           pruned = pkgs.pkgsStatic.xz.overrideAttrs (old: {
@@ -51,59 +71,26 @@
               + pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
                 sed -i 's/^build_libtool_libs=yes$/build_libtool_libs=no/' libtool
               '';
-            postInstall = (old.postInstall or "") + "\n" + ''
-              for o in $outputs; do
-                d="''${!o}"
-                if [ -d "$d/bin" ]; then
-                  find "$d/bin" -mindepth 1 -maxdepth 1 \
-                    ! -name 'xz' ! -name 'xz.exe' -delete
-                fi
-                # Curate man pages to the shipped commands only. Upstream
-                # installs 23 man1 pages; we ship `xz` + the 5 multicall
-                # aliases, so drop the pages for the standalone helpers
-                # (xzdec/lzmadec/lzmainfo) and the shell scripts
-                # (xzdiff/xzgrep/xzless/xzmore + lz* variants) we don't
-                # carry — otherwise withMan embeds all 23. Touch only the
-                # C-locale `man1/` (the only tree withMan embeds); the
-                # translated locale dirs (de/, fr/, …) are left intact so
-                # their internal alias→page symlink webs don't dangle. The
-                # 5 alias pages we keep are all symlinks to xz.1, which we
-                # keep, so man1/ stays self-consistent.
-                if [ -d "$d/share/man/man1" ]; then
-                  find "$d/share/man/man1" -mindepth 1 -maxdepth 1 \
-                    ! -name 'xz.1*'   ! -name 'unxz.1*'  ! -name 'xzcat.1*' \
-                    ! -name 'lzma.1*' ! -name 'unlzma.1*' ! -name 'lzcat.1*' \
-                    -delete
-                fi
-              done
-            '';
+            postInstall = (old.postInstall or "") + "\n" + prunePostInstall;
           });
         in
-        unpins-lib.lib.withAliases pkgs
+        lib.withAliases pkgs
           {
             primary = "xz";
             aliases = [ "unxz" "xzcat" "lzma" "unlzma" "lzcat" ];
           }
           pruned;
-      # Mingw counterpart: same pruning, `xz.exe` as the embed target.
+      # Mingw counterpart: same prune (bin + man). The .exe embeds its OWN
+      # curated man — the mingw cross installs xz's pre-generated man just like
+      # every other target, so withMan harvests it after the prune. No graft.
       windowsBuild = pkgs:
         let
-          cross = unpins-lib.lib.mingwStaticCross pkgs;
-          # No man curation here: the Windows binary's embedded man comes
-          # from `winManRoot` (the mingw cross can't run help2man), not from
-          # this cross build's own share/man — so we only need to prune bin/.
+          cross = lib.mingwStaticCross pkgs;
           pruned = cross.xz.overrideAttrs (old: {
-            postInstall = (old.postInstall or "") + "\n" + ''
-              for o in $outputs; do
-                d="''${!o}"
-                [ -d "$d/bin" ] || continue
-                find "$d/bin" -mindepth 1 -maxdepth 1 \
-                  ! -name 'xz' ! -name 'xz.exe' -delete
-              done
-            '';
+            postInstall = (old.postInstall or "") + "\n" + prunePostInstall;
           });
         in
-        unpins-lib.lib.withAliases pkgs
+        lib.withAliases pkgs
           {
             primary = "xz.exe";
             aliases = [ "unxz" "xzcat" "lzma" "unlzma" "lzcat" ];
