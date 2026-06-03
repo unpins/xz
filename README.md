@@ -9,21 +9,22 @@ Standalone build of [xz](https://tukaani.org/xz/).
 
 Part of the [unpins](https://unpins.org) project — native single-binary builds with no third-party runtime dependencies.
 
-## Installation
+## Usage
 
-Install with [unpin](https://github.com/unpins/unpin):
-
-```bash
-unpin xz
-```
-
-Or run without installing:
+Run the `xz` program with [unpin](https://github.com/unpins/unpin):
 
 ```bash
-unpin run xz
+unpin xz -z file        # compress -> file.xz
+unpin xz -d file.xz     # decompress
 ```
 
-`unpin install` creates the multicall aliases (`unxz`, `xzcat`, `lzma`, `unlzma`, `lzcat`) alongside `xz`. Each alias dispatches via `argv[0]` to the same binary, matching the behavior shipped by upstream's `bin/` directory.
+To install it onto your PATH:
+
+```bash
+unpin install xz
+```
+
+Installing also creates the `unxz`, `xzcat`, `lzma`, `unlzma`, `lzcat` commands.
 
 ## Build locally
 
