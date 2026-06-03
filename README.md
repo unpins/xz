@@ -47,4 +47,4 @@ The [Releases](https://github.com/unpins/xz/releases) page has standalone binari
 
 ## Man pages
 
-The man pages for the shipped commands — `xz`, `unxz`, `xzcat`, `lzma`, `unlzma`, `lzcat` — are embedded in the binary; read one with `unpin man xz`, e.g. `unpin man xz unxz`. The pages for the standalone helpers (`xzdec`, `lzmadec`, `lzmainfo`) and the shell-script wrappers (`xzdiff`, `xzgrep`, `xzless`, `xzmore`, …) are dropped, since this package ships only `xz` and its multicall aliases.
+The man pages for the shipped commands — `xz`, `unxz`, `xzcat`, `lzma`, `unlzma`, `lzcat` — are embedded in the binary; read one with `unpin man xz`, e.g. `unpin man xz unxz`. The pages for the standalone helpers (`xzdec`, `lzmadec`, `lzmainfo`) and the shell-script wrappers (`xzdiff`, `xzgrep`, `xzless`, `xzmore`, …) are dropped, since this package ships only `xz` and its aliases.
