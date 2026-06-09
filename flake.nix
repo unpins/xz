@@ -55,6 +55,13 @@
     lib.mkStandaloneFlake {
       inherit self;
       name = "xz";
+
+      # nixpkgs lists [ gpl2Plus lgpl21Plus ], which is stale: since 5.6.0
+      # upstream licenses liblzma and the command-line tools under 0BSD. The
+      # LGPL getopt_long replacement is only compiled where libc lacks it
+      # (musl, mingw-w64, and macOS all provide it) and the GPL bits are
+      # build-system files that don't land in the artifact.
+      license = "0BSD";
       build = pkgs:
         let
           pruned = pkgs.pkgsStatic.xz.overrideAttrs (old: {
