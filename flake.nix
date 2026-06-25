@@ -56,6 +56,12 @@
       inherit self;
       name = "xz";
 
+      # Build via the unpin-llvm engine + emit a bitcode multicall module.
+      engine = "unpin-llvm";
+      multicall = {
+        programs = [{ name = "xz"; aliases = [ "unxz" "xzcat" "lzma" "unlzma" "lzcat" ]; }];
+      };
+
       # nixpkgs lists [ gpl2Plus lgpl21Plus ], which is stale: since 5.6.0
       # upstream licenses liblzma and the command-line tools under 0BSD. The
       # LGPL getopt_long replacement is only compiled where libc lacks it
