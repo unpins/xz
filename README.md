@@ -48,3 +48,11 @@ The first invocation will offer to add the [unpins.cachix.org](https://unpins.ca
 
 The [Releases](https://github.com/unpins/xz/releases) page has standalone binaries for manual download.
 
+## Build notes
+
+- **Platforms:** Linux, macOS, Windows.
+- **Multicall:** one `xz` binary; `unxz`/`xzcat`/`lzma`/`unlzma`/`lzcat` are `argv[0]`-dispatch aliases (`unpin install xz` creates the command names). The standalone helpers (`xzdec`/`lzmadec`/`lzmainfo`) and the shell-script wrappers are dropped under the single-binary policy.
+- **Windows:** a single static `xz.exe` cross-compiled with mingw-w64 — no companion DLLs.
+- **Man pages:** the six shipped-command pages are embedded; read with `unpin man xz`.
+- **Tests:** xz's test suite runs on native builds (19/19 pass under static-musl) and auto-skips on cross targets the build host can't execute.
+

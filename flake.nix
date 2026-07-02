@@ -70,7 +70,11 @@
       license = "0BSD";
       build = pkgs:
         let
-          pruned = pkgs.pkgsStatic.xz.overrideAttrs (old: {
+          base = pkgs.pkgsStatic.xz;
+          pruned = base.overrideAttrs (old: {
+            # Run xz's test suite on native runners (19/19 pass under static-musl);
+            # auto-skips on crosses the build host can't execute.
+            doCheck = base.stdenv.buildPlatform.canExecute base.stdenv.hostPlatform;
             # On darwin, pkgsStatic still leaves libtool building a shared
             # liblzma — configure reports "build shared libraries: yes"
             # despite `--disable-shared` (Apple has no static libSystem, so
