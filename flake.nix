@@ -91,12 +91,7 @@
             postInstall = (old.postInstall or "") + "\n" + prunePostInstall;
           });
         in
-        lib.withAliases pkgs
-          {
-            primary = "xz";
-            aliases = [ "unxz" "xzcat" "lzma" "unlzma" "lzcat" ];
-          }
-          pruned;
+        pruned;
       # Mingw counterpart: same prune (bin + man). The .exe embeds its OWN
       # curated man — the mingw cross installs xz's pre-generated man just like
       # every other target, so withMan harvests it after the prune. No graft.
@@ -107,11 +102,6 @@
             postInstall = (old.postInstall or "") + "\n" + prunePostInstall;
           });
         in
-        lib.withAliases pkgs
-          {
-            primary = "xz.exe";
-            aliases = [ "unxz" "xzcat" "lzma" "unlzma" "lzcat" ];
-          }
-          pruned;
+        pruned;
     };
 }
