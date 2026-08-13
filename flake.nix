@@ -55,6 +55,8 @@
     lib.mkStandaloneFlake {
       inherit self;
       name = "xz";
+      smoke = [ "--version" ];
+      smokePattern = "^xz \\(XZ Utils\\) [0-9]+\\.[0-9]+";
 
       # Build via the unpin-llvm engine + emit a bitcode multicall module.
       engine = "unpin-llvm";
