@@ -62,6 +62,14 @@
       engine = "unpin-llvm";
       multicall = {
         programs = [{ name = "xz"; aliases = [ "unxz" "xzcat" "lzma" "unlzma" "lzcat" ]; }];
+        # xz is NLS-enabled and bakes its own $out/share/locale as the gettext
+        # domain directory. The standalone ships bin/ only, so that path is
+        # dead -- but Nix counted it as a runtime reference and dragged the base
+        # build, and through its compiler wrapper the toolchain, behind a
+        # self-contained binary. Scrubbing changes nothing at run time (gettext
+        # already fell through to the untranslated strings) and leaves NLS
+        # compiled in.
+        removeReferences = [ "xz-static" "xz-x86_64-w64-mingw32" ];
       };
 
       # nixpkgs lists [ gpl2Plus lgpl21Plus ], which is stale: since 5.6.0
