@@ -61,6 +61,8 @@
       # Build via the unpin-llvm engine + emit a bitcode multicall module.
       engine = "unpin-llvm";
       multicall = {
+        # The `.exe` on the engine too, not the nixpkgs mingw-gcc cross.
+        windows = true;
         programs = [{ name = "xz"; aliases = [ "unxz" "xzcat" "lzma" "unlzma" "lzcat" ]; }];
         # xz is NLS-enabled and bakes its own $out/share/locale as the gettext
         # domain directory. The standalone ships bin/ only, so that path is
