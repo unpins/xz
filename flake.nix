@@ -9,41 +9,39 @@
   inputs.unpins-lib.url = "github:unpins/nix-lib";
 
   # xz ships a multicall binary (xz) with symlinks for `unxz`, `xzcat`, `lzma`,
-  # `unlzma`, `lzcat` plus a handful of standalone helpers (`xzdec`, `lzmadec`,
+  # `unlzma`, `lzcat`, three standalone helpers (`xzdec`, `lzmadec`,
   # `lzmainfo`) and shell scripts (`xzdiff`, `xzgrep`, `xzless`, `xzmore` and
-  # their aliases). The scripts need a system shell + cmp/grep/sed/less to work,
-  # which violates unpins' "single binary" model, and the standalone helpers add
-  # little over the multicall — so we ship only `xz` with the multicall aliases
-  # embedded as UNPIN_META so unpin's installer can create argv[0]-dispatch
-  # links at install time.
+  # their aliases). The helpers fold into the multicall; the scripts are left
+  # out, since they need a system shell plus cmp/grep/sed/less.
   outputs = { self, unpins-lib }:
     let
       lib = unpins-lib.lib;
-      # Pages for the shipped commands (`xz` + its 5 multicall aliases). Every
+      # Pages for the shipped commands (`xz`, its 5 aliases, the 3 helpers). Every
       # target — native, cross-linux, AND windows — runs the same prune below
       # and then embeds its OWN curated man via withMan. No grafted/curated
       # external tree: the windows .exe harvests the pages from its own mingw
       # build (xz ships pre-generated roff in the tarball, installed on every
       # cross), exactly like the cross-linux targets already do.
-      manPages = [ "xz" "unxz" "xzcat" "lzma" "unlzma" "lzcat" ];
+      manPages = [ "xz" "unxz" "xzcat" "lzma" "unlzma" "lzcat" "xzdec" "lzmadec" "lzmainfo" ];
       manKeepArgs =
         builtins.concatStringsSep " " (map (p: "! -name '${p}.1*'") manPages);
+      binKeepArgs = builtins.concatStringsSep " "
+        (map (p: "! -name '${p}' ! -name '${p}.exe'") [ "xz" "xzdec" "lzmadec" "lzmainfo" ]);
 
       # Shared postInstall, applied identically on native and windows. Upstream
-      # installs 23 man1 pages + the standalone-helper binaries; we ship only
-      # `xz` (+ `xz.exe`) and the 5 multicall aliases. Keep just the matching
-      # binary and the 6 man pages.
+      # installs 23 man1 pages and the script wrappers; keep the four programs
+      # (+ `.exe`) and the 9 pages of the shipped commands.
       #
       # Touch only the C-locale `man1/` (the only tree withMan embeds); the
       # translated locale dirs (de/, fr/, …) are left intact so their internal
-      # alias→page symlink webs don't dangle. The 5 alias pages we keep are all
-      # symlinks to xz.1, which we keep, so man1/ stays self-consistent.
+      # alias→page symlink webs don't dangle. The kept alias pages link to xz.1
+      # and xzdec.1, which we keep, so man1/ stays self-consistent.
       prunePostInstall = ''
         for o in $outputs; do
           d="''${!o}"
           if [ -d "$d/bin" ]; then
             find "$d/bin" -mindepth 1 -maxdepth 1 \
-              ! -name 'xz' ! -name 'xz.exe' -delete
+              ${binKeepArgs} -delete
           fi
           if [ -d "$d/share/man/man1" ]; then
             find "$d/share/man/man1" -mindepth 1 -maxdepth 1 \
@@ -63,7 +61,16 @@
       multicall = {
         # The `.exe` on the engine too, not the nixpkgs mingw-gcc cross.
         windows = true;
-        programs = [{ name = "xz"; aliases = [ "unxz" "xzcat" "lzma" "unlzma" "lzcat" ]; }];
+        programs = [
+          { name = "xz"; aliases = [ "unxz" "xzcat" "lzma" "unlzma" "lzcat" ]; }
+          { name = "xzdec"; }
+          { name = "lzmadec"; }
+          { name = "lzmainfo"; }
+        ];
+        # All four link liblzma; fold it once. Per program it would be four
+        # private copies, and the i686 CRC assembly then finds no
+        # `lzma_crc32_table` to bind to.
+        foldSharedArchives = true;
         # xz is NLS-enabled and bakes its own $out/share/locale as the gettext
         # domain directory. The standalone ships bin/ only, so that path is
         # dead -- but Nix counted it as a runtime reference and dragged the base
@@ -84,18 +91,13 @@
         let
           base = pkgs.pkgsStatic.xz;
           pruned = base.overrideAttrs (old: {
-            # Run xz's test suite on native runners (19/19 pass under static-musl);
-            # auto-skips on crosses the build host can't execute.
+            # Restates the nixpkgs default; skipped on crosses the build host
+            # can't execute.
             doCheck = base.stdenv.buildPlatform.canExecute base.stdenv.hostPlatform;
-            # On darwin, pkgsStatic still leaves libtool building a shared
-            # liblzma — configure reports "build shared libraries: yes"
-            # despite `--disable-shared` (Apple has no static libSystem, so
-            # the static adapter can't fully suppress shared). The CLI then
-            # links liblzma.5.dylib and fails action-build's portability
-            # check. Force libtool to emit only the static archive so
-            # liblzma folds into the binary (libSystem stays the sole
-            # dynamic dep). Linux/musl already links static, so gate on
-            # darwin to leave that build untouched.
+            # On darwin nix-lib's filterEnableStaticOnDarwin drops
+            # `--disable-shared` from configureFlags, so libtool builds
+            # liblzma.5.dylib and the CLI links it, failing action-build's
+            # portability check. Have libtool emit only the static archive.
             postConfigure = (old.postConfigure or "")
               + pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
                 sed -i 's/^build_libtool_libs=yes$/build_libtool_libs=no/' libtool
