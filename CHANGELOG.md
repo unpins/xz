@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- `xzdec`, `lzmadec` and `lzmainfo`, which upstream installs and this package
+  used to drop. They run from the same `xz` binary; `unpin install xz` creates
+  the commands, and their man pages are embedded.
+
 ## [5.8.4-1] - 2026-09-26
 
 ### Changed

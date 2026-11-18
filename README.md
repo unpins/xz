@@ -24,11 +24,12 @@ To install it onto your PATH:
 unpin install xz
 ```
 
-Installing also creates the `unxz`, `xzcat`, `lzma`, `unlzma`, `lzcat` commands.
+Installing also creates the `unxz`, `xzcat`, `lzma`, `unlzma`, `lzcat`, `xzdec`, `lzmadec` and `lzmainfo` commands.
 
 ## Man pages
 
-The man pages for the shipped commands — `xz`, `unxz`, `xzcat`, `lzma`, `unlzma`, `lzcat` — are embedded in the binary; read one with `unpin man xz`, e.g. `unpin man xz unxz`. The pages for the standalone helpers (`xzdec`, `lzmadec`, `lzmainfo`) and the shell-script wrappers (`xzdiff`, `xzgrep`, `xzless`, `xzmore`, …) are dropped, since this package ships only `xz` and its aliases.
+The man pages for the shipped commands — `xz`, `unxz`, `xzcat`, `lzma`, `unlzma`, `lzcat`, `xzdec`, `lzmadec`, `lzmainfo` — are embedded in the binary; read one with `unpin man xz`, e.g. `unpin man xz xzdec`.
+
 ## Build locally
 
 ```bash
@@ -50,8 +51,8 @@ The [Releases](https://github.com/unpins/xz/releases) page has standalone binari
 
 ## Build notes
 
-- **Multicall:** one `xz` binary; `unxz`/`xzcat`/`lzma`/`unlzma`/`lzcat` are `argv[0]`-dispatch aliases (`unpin install xz` creates the command names). The standalone helpers (`xzdec`/`lzmadec`/`lzmainfo`) and the shell-script wrappers are dropped under the single-binary policy.
-- **Windows:** built with mingw-w64.
-- **Man pages:** the six shipped-command pages are embedded; read with `unpin man xz`.
-- **Tests:** xz's test suite runs on native builds (19/19 pass under static-musl) and auto-skips on cross targets the build host can't execute.
-
+- **Multicall:** one `xz` binary that also runs `unxz`/`xzcat`/`lzma`/`unlzma`/`lzcat` and the `xzdec`/`lzmadec`/`lzmainfo` helpers (`unpin install xz` creates the command names).
+- **Windows:** `xz.exe` targets the mingw-w64 runtime.
+- **Man pages:** the shipped-command pages are embedded; read with `unpin man xz`.
+- **Tests:** xz's test suite runs on native builds.
+- **Not included:** the shell-script wrappers `xzdiff`, `xzgrep`, `xzless`, `xzmore` and their aliases; they need a system shell plus `cmp`/`grep`/`sed`/`less`.
