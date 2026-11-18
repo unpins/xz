@@ -54,5 +54,6 @@ The [Releases](https://github.com/unpins/xz/releases) page has standalone binari
 - **Multicall:** one `xz` binary that also runs `unxz`/`xzcat`/`lzma`/`unlzma`/`lzcat` and the `xzdec`/`lzmadec`/`lzmainfo` helpers (`unpin install xz` creates the command names).
 - **Windows:** `xz.exe` targets the mingw-w64 runtime.
 - **Man pages:** the shipped-command pages are embedded; read with `unpin man xz`.
-- **Tests:** xz's test suite runs on native builds.
+- **Tests:** xz's test suite runs on native builds (0 failures under
+  static-musl) and is skipped on cross targets the build host can't execute.
 - **Not included:** the shell-script wrappers `xzdiff`, `xzgrep`, `xzless`, `xzmore` and their aliases; they need a system shell plus `cmp`/`grep`/`sed`/`less`.
